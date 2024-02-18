@@ -45,6 +45,11 @@ const userSchema = new mongoose.Schema(
                 ref : "Fine"
             }
         ],
+        fine_today:{
+            type : Boolean,
+            default : false,
+            required : true
+        },
         role:{
             type:String,
             required : true,

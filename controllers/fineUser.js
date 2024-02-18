@@ -32,6 +32,15 @@ exports.FineUser = async (req,res)=>{
                 }},
                 { multi: true },
             )
+
+            await User.updateOne({_id:user._id},{
+                $set : {
+                    'fine_today': true,
+                }},
+                { multi: true },
+            )
+
+            
         }
         
         return res.status(200).json({
