@@ -1,7 +1,72 @@
 const RcSchema = require("../models/rc");
 const mindee = require("mindee");
+const RTO_RC_schema = require("../models/rcrto");
 const user = require("../models/user");
 const fs = require('fs');
+const isSubstring = (string1, string2) => {
+    const cleanString1 = string1.toLowerCase().replace(/\s+/g, '');
+    const words = string2.toLowerCase().split(/\s+/).filter(Boolean); // Split string2 into words
+    return words.some(word => cleanString1.includes(word));
+}
+
+
+function checkFakeDoc(userObj, orgObj) {
+
+    // console.log("rc file2 : "+ userObj.name);
+    // console.log("rc file1 : "+ orgObj[0].rc_user_name);
+    
+    const check1 = isSubstring(orgObj[0].rc_autority,userObj.authority);
+
+    const check2 = isSubstring(userObj.name,orgObj[0].rc_user_name)
+
+    if (check1 && userObj.chassis_no.trim() === orgObj[0].rc_chassis_no.trim() && 
+        userObj.engine_no.trim() === orgObj[0].rc_engine_no.trim() && 
+        check2 && userObj.registered_no.trim() === orgObj[0].rc_registered_no.trim()){
+
+        console.log("rc :" + true);
+        
+
+        // dates checking for registered_date in rc book 
+        let date = new Date(orgObj[0].rc_registered_date);
+
+        // Extract the date components
+        let year = date.getFullYear();
+        let month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
+        let day = date.getDate().toString().padStart(2, '0');
+
+        // Construct the desired format
+        let formattedDate = `${year}-${month}-${day}`;
+
+        const date1 = new Date(userObj.registered_date);
+        const date2 = new Date(formattedDate);
+
+
+        // dates checking for  registered_validity in rc book 
+        date = new Date(orgObj.rc_registered_validity);
+
+        // Extract the date components
+        year = date.getFullYear();
+        month = (date.getMonth() + 1).toString().padStart(2, '0'); // Months are zero-indexed
+        day = date.getDate().toString().padStart(2, '0');
+
+        formattedDate = `${year}-${month}-${day}`;
+
+        const date3 = new Date(userObj.registered_date);
+        const date4 = new Date(formattedDate);
+
+
+        if(date1.getTime() !== date2.getTime() && date3.getTime() !== date4.getTime()){
+            return false;
+        }
+        return true; 
+    }else{
+        return false;
+    }
+}
+
+function isObjectEmpty(obj) {
+    return Object.keys(obj).length === 0;
+}
 
 exports.RCUpload = async (req, res) => {
     try {
@@ -15,7 +80,6 @@ exports.RCUpload = async (req, res) => {
             });
         }
 
-        // moving image to ../controllers/uploads/images
         let path = __dirname + "/uploads/" + Date.now() + `.${document.name.split('.')[1]}`;
         document.mv(path, (err) => {
             if (err) {
@@ -24,9 +88,7 @@ exports.RCUpload = async (req, res) => {
         });
 
         // mindee api
-        const mindeeClient = new mindee.Client({
-            apiKey: process.env.MINDEE_APIKEY
-        });
+        const mindeeClient = new mindee.Client({ apiKey: process.env.MINDEE_APIKEY });
 
         const inputSource = mindeeClient.docFromPath(path);
         if (!inputSource) {
@@ -36,21 +98,10 @@ exports.RCUpload = async (req, res) => {
             });
         }
 
-        // Create a custom endpoint for your product
-        const customEndpoint = mindeeClient.createEndpoint(
-            "rc",
-            "Shruti-Deshmane",
-            // "1" // Optional: set the version, defaults to "1"
-        );
+        const customEndpoint = mindeeClient.createEndpoint("rc", "Shruti-Deshmane");
 
+        const apiResponse = mindeeClient.parse(mindee.product.CustomV1, inputSource, { endpoint: customEndpoint, cropper: true });
 
-        // Parse it
-        const apiResponse = mindeeClient.parse(mindee.product.CustomV1, inputSource, {
-            endpoint: customEndpoint,
-            cropper: true
-        });
-
-        // Handle the response Promise
         apiResponse.then((resp) => {
             let rc_autority = "";
             for (let i = 0; i < resp.document.inference.prediction.fields.get('authority').values.length; i++) {
@@ -77,68 +128,103 @@ exports.RCUpload = async (req, res) => {
                 registered_validity: resp.document.inference.prediction.fields.get('registered_validity').values[0].content
             }
 
-            console.log(userObj);
             fs.unlinkSync(path);
-
-        }).then(async () => {
-            const rc_autority = userObj['authority'];
-            const rc_chassis_no = userObj['chassis_no'];
-            const rc_engine_no = userObj['engine_no'];
-            const rc_user_name = userObj['name'];
-            const rc_registered_no = userObj['registered_no'];
-            const rc_registered_date = userObj['registered_date'];
-            const rc_registered_validity = userObj['registered_validity'];
-
-            const rc_data = await RcSchema.create({
-                rc_autority,
-                rc_chassis_no,
-                rc_engine_no,
-                rc_user_name,
-                rc_registered_no,
-                rc_registered_date,
-                rc_registered_validity,
-            })
-
-            console.log("data stored");
-
-            // step 4: check user is logged in or not and doc_owner_name and account_name
-
-            // check user is logged in or not
-            if (req.user.id === undefined) {
-                return res.status(400).json({
-                    success: false,
-                    message: 'User is not logged in or token expired',
-                });
-            }
-
-            // change the user status
-            await user.findByIdAndUpdate({ _id: req.user.id }, {
-                $set: {
-                    'user_rc_status.status': true,
-                    'user_rc_status.value': userObj.registered_no
-                }
-            },
-                { multi: true },
-            ).then(() => {
-                console.log("data changed");
-            })
-
-            const updatedUser = await user.findById({ _id: req.user.id });
-            console.log(updatedUser);
-
         })
+            .then(async () => {
+
+                console.log(userObj['registered_no'] ); 
+
+                const CurrentUser = await user.findById({ _id: req.user.id });
+                const checkuser = await RTO_RC_schema.find({ rc_registered_no : userObj['registered_no'] });
+
+                console.log("checkuser:"+checkuser);
+                console.log("CurrentUser:"+CurrentUser);
+
+                 // check data is valid or not (empty or null)
+                if (isObjectEmpty(checkuser)) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'Data for this entry is not valid means falutly data or fake document',
+                    });
+                }
+
+                // checking for fake document
+                const status = checkFakeDoc(userObj, checkuser);
+                if (!status) {
+                    return res.status(400).json({
+                        success: false,
+                        message: 'it is a fake document',
+                    });
+                } else {
 
 
-        return res.status(200).json({
-            success: true,
-            message: 'rc Licnese data fetch successfully',
-        });
+                    // check user is logged in or not
+                    if (req.user.id === undefined) {
+                        return res.status(400).json({
+                            success: false,
+                            message: 'User is not logged in or token expired',
+                        });
+                    }
+
+                   
+                    // console.log(CurrentUser.user_name.toLowerCase().trim(),userObj.name.toLowerCase().trim());
+
+                    const result = isSubstring(CurrentUser.user_name.toLowerCase().trim(),userObj.name.toLowerCase().trim())
+                    console.log("res : "+result);
+
+                    if(result){
+
+                        const rc_autority = userObj['authority'];
+                        const rc_chassis_no = userObj['chassis_no'];
+                        const rc_engine_no = userObj['engine_no'];
+                        const rc_user_name = userObj['name'];
+                        const rc_registered_no = userObj['registered_no'];
+                        const rc_registered_date = userObj['registered_date'];
+                        const rc_registered_validity = userObj['registered_validity'];
+
+                        const rc_data = await RcSchema.create({
+                            rc_autority,
+                            rc_chassis_no,
+                            rc_engine_no,
+                            rc_user_name,
+                            rc_registered_no,
+                            rc_registered_date,
+                            rc_registered_validity,
+                        })
+
+                        console.log("data stored");
+
+
+                        // change the user status
+                        const updatedUser =  await user.findByIdAndUpdate({ _id: req.user.id }, {
+                            $set: {
+                                'user_rc_status.status': true,
+                                'user_rc_status.value': userObj.registered_no
+                            }
+                        },
+                            { multi: true },
+                        ).then(() => {
+                            console.log("data changed");
+                        })
+                    }else{
+                        return res.status(400).json({
+                            success:false,
+                            message:"uploaded doucment is not match with current user"
+                        })
+                    }
+                
+                }
+
+                return res.status(200).json({
+                    success: true,
+                    message: 'rc Licnese data fetch successfully',
+                });
+            })
 
     } catch (err) {
-        console.error(err);
         return res.status(400).json({
             success: false,
-            message: 'Error occured while getting image or api resposne',
+            message: 'Error occured due to technical reason',
         });
     }
 }
