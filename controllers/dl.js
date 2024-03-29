@@ -11,10 +11,6 @@ function checkFakeDoc(userObj, orgObj) {
     const areEqual = JSON.stringify(userObj.cov) === JSON.stringify(orgObj[0].dl_cov);
     // console.log("array comapre : "+areEqual);
 
-    console.log(userObj.cov,orgObj[0].dl_cov);
-    console.log(userObj.name,orgObj[0].dl_name);
-    console.log(userObj.dl_no,orgObj[0].dl_no);
-    console.log(userObj.state,orgObj[0].dl_state);
 
     if (userObj.name.trim() === orgObj[0].dl_name.trim() 
         && areEqual && userObj.state.trim() === orgObj[0].dl_state.trim()
@@ -34,7 +30,7 @@ function checkFakeDoc(userObj, orgObj) {
             const date1 = new Date(userObj.valid_till);
             const date2 = new Date(formattedDate);
 
-            console.log(date1,date2);
+            
 
             if(date1.getTime() !== date2.getTime()){
                 return false;
@@ -128,7 +124,6 @@ exports.DlUpload = async (req, res) => {
 
             // checking for fake document
             const status = checkFakeDoc(userObj, checkuser);
-            console.log(status);
 
             if (!status) {
                 return res.status(400).json({

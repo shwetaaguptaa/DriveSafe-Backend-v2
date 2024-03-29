@@ -12,9 +12,7 @@ const isSubstring = (string1, string2) => {
 
 function checkFakeDoc(userObj, orgObj) {
 
-    // console.log("rc file2 : "+ userObj.name);
-    // console.log("rc file1 : "+ orgObj[0].rc_user_name);
-    
+   
     const check1 = isSubstring(orgObj[0].rc_autority,userObj.authority);
 
     const check2 = isSubstring(userObj.name,orgObj[0].rc_user_name)
@@ -22,8 +20,6 @@ function checkFakeDoc(userObj, orgObj) {
     if (check1 && userObj.chassis_no.trim() === orgObj[0].rc_chassis_no.trim() && 
         userObj.engine_no.trim() === orgObj[0].rc_engine_no.trim() && 
         check2 && userObj.registered_no.trim() === orgObj[0].rc_registered_no.trim()){
-
-        console.log("rc :" + true);
         
 
         // dates checking for registered_date in rc book 
@@ -132,13 +128,8 @@ exports.RCUpload = async (req, res) => {
         })
             .then(async () => {
 
-                console.log(userObj['registered_no'] ); 
-
                 const CurrentUser = await user.findById({ _id: req.user.id });
                 const checkuser = await RTO_RC_schema.find({ rc_registered_no : userObj['registered_no'] });
-
-                console.log("checkuser:"+checkuser);
-                console.log("CurrentUser:"+CurrentUser);
 
                  // check data is valid or not (empty or null)
                 if (isObjectEmpty(checkuser)) {
@@ -166,11 +157,7 @@ exports.RCUpload = async (req, res) => {
                         });
                     }
 
-                   
-                    // console.log(CurrentUser.user_name.toLowerCase().trim(),userObj.name.toLowerCase().trim());
-
                     const result = isSubstring(CurrentUser.user_name.toLowerCase().trim(),userObj.name.toLowerCase().trim())
-                    console.log("res : "+result);
 
                     if(result){
 
