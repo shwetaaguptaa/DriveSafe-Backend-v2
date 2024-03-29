@@ -10,7 +10,7 @@ exports.Signin = async(req,res) => {
         const {user_email, user_password , role } = req.body;
         //validation on email and password
 
-        if(!user_email || !user_password) {
+        if(!user_email || !user_password || !role) {
             return res.status(400).json({
                 success:false,
                 message:'Please fill all the details carefully',
