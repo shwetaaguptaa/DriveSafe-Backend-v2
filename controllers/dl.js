@@ -30,8 +30,6 @@ function checkFakeDoc(userObj, orgObj) {
             const date1 = new Date(userObj.valid_till);
             const date2 = new Date(formattedDate);
 
-            
-
             if(date1.getTime() !== date2.getTime()){
                 return false;
             }
