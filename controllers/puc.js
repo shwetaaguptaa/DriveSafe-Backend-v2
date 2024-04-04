@@ -7,6 +7,7 @@ const fs = require('fs');
 exports.PUCUpload = async (req, res) => {
     try{
         
+      //Shweta will be handling this file
         // Init a new client
         const mindeeClient = new mindee.Client({ apiKey: "98344a6ad9335c720813ac56d1765351" });
 
