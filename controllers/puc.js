@@ -6,45 +6,45 @@ const fs = require('fs');
 
 exports.PUCUpload = async (req, res) => {
     try{
+        
+        // Init a new client
+        const mindeeClient = new mindee.Client({ apiKey: "98344a6ad9335c720813ac56d1765351" });
 
-        const document = req.files.document
-        if (!document) {
-            return res.status(400).json({
-                success: false,
-                message: 'image not found',
-            });
-        }
+        
+        // Load a file from disk
+        const inputSource = mindeeClient.docFromPath("./config/1puc.jpg");
+        
+        // Create a custom endpoint for your product
+        const customEndpoint = mindeeClient.createEndpoint(
+          "puc",
+          "Shruti-Deshmane",
+          "1" // Defaults to "1"
+        );
+        
+        // Parse the file asynchronously.
+        const asyncApiResponse = mindeeClient.enqueueAndParse(
+          mindee.product.GeneratedV1,
+          inputSource,
+          { endpoint: customEndpoint }
+        );
+        
+        // Handle the response Promise
+        asyncApiResponse.then((resp) => {
+          // print a string summary
+          console.log(resp.document.inference.prediction.fields.get('certificate_no').value);
+          console.log(resp.document.inference.prediction.fields.get('date').value);
+          console.log(resp.document.inference.prediction.fields.get('emission_norms').value);
+          console.log(resp.document.inference.prediction.fields.get('fuel').value);
+          console.log(resp.document.inference.prediction.fields.get('puc_code').value);
+          console.log(resp.document.inference.prediction.fields.get('registration_no').value);
+          console.log(resp.document.inference.prediction.fields.get('validity').value); 
 
-        let path = __dirname + "/uploads/" + Date.now() + `.${document.name.split('.')[1]}`;
-        document.mv(path, (err) => {
-            if (err) {
-                console.log(err);
-            }
+          
         });
 
-        // Api mindee
-        const mindeeClient = new mindee.Client({ apiKey: process.env.MINDEE_APIKEY });
-
-        const inputSource = mindeeClient.docFromPath(path);
-        if (!inputSource) {
-            return res.status(400).json({
-                success: false,
-                message: 'inputsource is not found',
-            });
-        }
-
-        const customEndpoint = mindeeClient.createEndpoint("puc", "Shruti-Deshmane");
-
-        // Parse it
-        const apiResponse = mindeeClient.parse(mindee.product.CustomV1, inputSource, {
-            endpoint: customEndpoint, cropper: true
-        });
-
-        apiResponse.then((resp) => {
-
-            // changes here according to api resp
-
-            console.log(resp.document.toString());
+        res.status(200).json({
+            success:true,
+            message : "success",
         })
 
     }

@@ -14,7 +14,6 @@ const { auth , isOfficer } = require("../middleware/auth");
 const {FineCollectionByUserId} = require("../controllers/fineColl");
 const { FineUser } = require("../controllers/fineUser");
 
-const {Insur} = require("../controllers/insur");
 
 
 router.post("/login", Signin);
@@ -26,8 +25,6 @@ router.post("/upload_puc",auth,PUCUpload)
 router.post("/upload_insur",auth,INSURUpload)
 router.get("/finecollection/:id",FineCollectionByUserId);
 
-
-router.post("/rtoinsur",Insur);
 
 // For Officer
 router.get("/fine/:id",auth,isOfficer,Fine)

@@ -18,7 +18,7 @@
     "express": "^4.18.2",
     "express-fileupload": "^1.4.3",
     "jsonwebtoken": "^9.0.2",
-    "mindee": "^4.6.1",
+    "mindee": "^4.9.1",
     "mongoose": "^8.0.0",
     "node-schedule": "^2.1.1",
     "nodemon": "^3.0.1"
